@@ -1,0 +1,10 @@
+/target
+**/*.rs.bk
+*.pdb
+
+# Local, non-shared configuration.
+/config/local.json
+/config/local.*.json
+
+# Runtime scratch space (block cache, dumps).
+/tmp/
