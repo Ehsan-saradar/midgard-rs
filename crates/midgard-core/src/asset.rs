@@ -113,7 +113,13 @@ impl Asset {
         let symbol = sym.to_ascii_uppercase();
         let ticker = symbol.split('-').next().unwrap_or("").to_string();
 
-        Asset { chain, ticker, symbol, synth, trade }
+        Asset {
+            chain,
+            ticker,
+            symbol,
+            synth,
+            trade,
+        }
     }
 
     /// `true` for pools whose asset lives on THORChain itself (derived assets, TCY, ...).

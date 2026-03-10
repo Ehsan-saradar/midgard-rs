@@ -31,7 +31,11 @@ pub fn float_str(v: f64) -> String {
         return "NaN".to_string();
     }
     if v.is_infinite() {
-        return if v > 0.0 { "+Inf".to_string() } else { "-Inf".to_string() };
+        return if v > 0.0 {
+            "+Inf".to_string()
+        } else {
+            "-Inf".to_string()
+        };
     }
     let s = v.to_string();
     // Rust prints -0 as "-0"; Go prints it as "-0" too, but 1e21 and up switch to exponent form

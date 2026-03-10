@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/midgard-core"]
+members = ["crates/midgard-core", "crates/midgard-config"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,6 +11,7 @@ repository = "https://github.com/Ehsan-saradar/midgard-rs"
 
 [workspace.dependencies]
 midgard-core = { path = "crates/midgard-core" }
+midgard-config = { path = "crates/midgard-config" }
 
 anyhow = "1.0"
 thiserror = "1.0"
