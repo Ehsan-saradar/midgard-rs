@@ -922,6 +922,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "midgard-record"
+version = "0.1.0"
+dependencies = [
+ "midgard-chain",
+ "midgard-config",
+ "midgard-core",
+ "midgard-db",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tendermint",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "mio"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
