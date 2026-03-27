@@ -1,0 +1,28 @@
+[package]
+name = "midgard-chain"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Tendermint and THORNode clients for midgard-rs"
+
+[dependencies]
+midgard-core = { workspace = true }
+midgard-config = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+futures = "0.3"
+
+# Wire types only. `default-features = false` skips their HTTP client, which has no JSON-RPC
+# batching and which we replace with `rpc.rs`; that alone is 83 fewer transitive crates.
+tendermint = { version = "0.40", default-features = false }
+tendermint-rpc = { version = "0.40", default-features = false }
+time = { version = "0.3", default-features = false }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
