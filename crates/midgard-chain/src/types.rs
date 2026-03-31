@@ -37,9 +37,11 @@ impl Block {
     /// Begin-block events: tagged `mode=BeginBlock`, or carrying no `mode` at all.
     ///
     /// CometBFT 0.38 merged the begin and end phases into one `finalize_block_events` list and
-    /// distinguishes them with a `mode` attribute. The no-mode case is not hypothetical — several
-    /// THORChain event types are emitted without one, and treating those as end-block would
-    /// reorder them relative to the transactions in the same block.
+    /// distinguishes them with a `mode` attribute. Current THORNode tags every event, and in
+    /// practice almost all of them are `EndBlock`; the no-mode branch is here for the pre-0.38
+    /// stream, where the two phases arrived as separate lists and an untagged event meant
+    /// begin-block. Classifying an untagged event as end-block instead would move it after the
+    /// block's transactions, which is the wrong order to record it in.
     ///
     /// The `usize` is the position in the original list, because that is what the event id is
     /// built from; numbering within the filtered subset would collide across the two phases.

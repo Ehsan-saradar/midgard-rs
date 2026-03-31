@@ -34,10 +34,32 @@ fn test_config() -> Option<TimeScale> {
     })
 }
 
-/// Every test in this file drops and rebuilds the one shared schema, so they cannot overlap.
-/// Serialising here rather than telling people to pass `--test-threads=1` — a flag that will be
-/// forgotten exactly once, on the run where it matters.
-static DB_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+/// Key for the advisory lock below. Shared with `midgard-record`'s pipeline tests, which rebuild
+/// the same schema.
+const SCHEMA_LOCK_KEY: i64 = 0x_4D49_4447; // "MIDG"
+
+/// Take an exclusive, cross-process lock on the schema.
+///
+/// Every test in this file drops and rebuilds the one shared `midgard` schema, so they cannot
+/// overlap — and neither can they overlap with the integration tests in *other* crates, which
+/// `cargo test` runs as separate processes at the same time. An in-process mutex does not help
+/// there; a postgres advisory lock does.
+///
+/// The lock is held by a dedicated connection rather than one borrowed from the pool: advisory
+/// locks are session-scoped, and a pooled connection returning to the pool would keep the session
+/// alive and the lock with it. Dropping the returned connection ends the session and releases it.
+async fn lock_schema(cfg: &TimeScale) -> sqlx::PgConnection {
+    use sqlx::Connection;
+    let mut conn = sqlx::PgConnection::connect(&cfg.connection_string())
+        .await
+        .expect("lock connection");
+    sqlx::query("SELECT pg_advisory_lock($1)")
+        .bind(SCHEMA_LOCK_KEY)
+        .execute(&mut conn)
+        .await
+        .expect("advisory lock");
+    conn
+}
 
 /// Connect and take the lock, or bail out of the test if there is no database configured.
 /// Hold the returned guard for the duration of the test.
@@ -45,7 +67,7 @@ macro_rules! db_or_skip {
     () => {
         match test_config() {
             Some(cfg) => {
-                let guard = DB_LOCK.lock().await;
+                let guard = lock_schema(&cfg).await;
                 (Db::connect(&cfg).await.expect("connect"), guard)
             }
             None => {
