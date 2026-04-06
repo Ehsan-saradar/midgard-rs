@@ -6,6 +6,8 @@ members = [
     "crates/midgard-db",
     "crates/midgard-chain",
     "crates/midgard-record",
+    "crates/midgard-api",
+    "crates/midgard",
 ]
 
 [workspace.package]
@@ -21,6 +23,7 @@ midgard-config = { path = "crates/midgard-config" }
 midgard-db = { path = "crates/midgard-db" }
 midgard-chain = { path = "crates/midgard-chain" }
 midgard-record = { path = "crates/midgard-record" }
+midgard-api = { path = "crates/midgard-api" }
 
 anyhow = "1.0"
 thiserror = "1.0"
