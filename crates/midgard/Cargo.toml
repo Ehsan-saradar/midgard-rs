@@ -1,0 +1,27 @@
+[package]
+name = "midgard"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "THORChain Midgard daemon"
+default-run = "midgard"
+
+[[bin]]
+name = "midgard"
+path = "src/main.rs"
+
+[dependencies]
+midgard-core = { workspace = true }
+midgard-config = { workspace = true }
+midgard-db = { workspace = true }
+midgard-chain = { workspace = true }
+midgard-record = { workspace = true }
+midgard-api = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+sqlx = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+axum = "0.8"
