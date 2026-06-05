@@ -1,0 +1,12 @@
+{
+  "listen_port": 8080,
+  "shutdown_timeout": "20s",
+  "read_timeout": "20s",
+  "write_timeout": "20s",
+  "max_block_age": "60s",
+  "logs": {
+    "console_logger": true,
+    "no_color": false,
+    "level": "info"
+  }
+}

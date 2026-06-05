@@ -1,0 +1,13 @@
+{
+  "timescale": {
+    "host": "localhost",
+    "port": 5432,
+    "user_name": "midgard",
+    "password": "password",
+    "database": "midgard",
+    "sslmode": "disable",
+    "max_open_conns": 80,
+    "commit_batch_size": 100,
+    "no_auto_update_ddl": false
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "thorchain": {
+    "tendermint_url": "http://localhost:27147/websocket",
+    "thornode_url": "http://localhost:1317/thorchain",
+    "fetch_batch_size": 1,
+    "parallelism": 1,
+    "read_timeout": "8s",
+    "last_chain_backoff": "7s",
+    "max_status_retries": 10,
+    "status_retry_backoff": "5s"
+  },
+  "usd_pools": [
+    "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7",
+    "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+    "AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E"
+  ]
+}
