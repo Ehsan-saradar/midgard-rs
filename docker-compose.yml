@@ -1,0 +1,35 @@
+services:
+  pg:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_USER: midgard
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: midgard
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U midgard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  midgard:
+    build: .
+    depends_on:
+      pg:
+        condition: service_healthy
+    environment:
+      # Reach the database by service name rather than localhost.
+      MIDGARD_TIMESCALE_HOST: pg
+      # Point these at a THORNode. THORChain serves Tendermint RPC on 27147,
+      # not the CometBFT default of 26657.
+      MIDGARD_THORCHAIN_TENDERMINT_URL: http://host.docker.internal:27147/websocket
+      MIDGARD_THORCHAIN_THORNODE_URL: http://host.docker.internal:1317/thorchain
+    ports:
+      - "8080:8080"
+    command: ["config/base.json", "config/pg.json", "config/net-main.json"]
+
+volumes:
+  pgdata:
