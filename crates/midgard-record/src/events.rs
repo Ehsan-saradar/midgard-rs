@@ -370,6 +370,31 @@ pub const IGNORED: &[&str] = &[
     "schedule_start",
     "schedule_add",
     "schedule_end",
+    // Observed on mainnet while running against a live node. All either belong to endpoints this
+    // port does not serve, or are informational and change no state we track.
+    "limit_swap",
+    "limit_swap_close",
+    "rebond",
+    "vault_over_solvency",
+    "tcy_claim",
+    "tcy_distribution",
+    "tcy_stake",
+    "tcy_unstake",
+    "rune_pool_deposit",
+    "rune_pool_withdraw",
+    "affiliate_fee",
+    "secured_asset_deposit",
+    "secured_asset_withdraw",
+    "trade_account_deposit",
+    "trade_account_withdraw",
+    "streaming_swap",
+    "loan_open",
+    "loan_repayment",
+    "thorname",
+    "tss_keygen_success",
+    "tss_keygen_failure",
+    "failed_refund",
+    "pending_liquidity_slash",
     "set_ip_address",
     "set_node_keys",
     "set_version",
@@ -432,6 +457,11 @@ pub fn decode(event: &Event) -> Result<Decoded, DecodeError> {
         "InactiveVault" => Recorded::InactiveVault(vault(event)?),
         "UpdateNodeAccountStatus" => Recorded::NodeStatus(node_status(event)?),
         other if IGNORED.contains(&other) => return Ok(Decoded::Ignored),
+        // CosmWasm contract events are namespaced by contract, so there is an open-ended set of
+        // them ("wasm-rujira-fin/order.create" and so on). They describe activity in contracts
+        // that sit alongside the pools rather than in them, and matching the prefix is the only
+        // way to keep the unknown-type warning meaningful.
+        other if other.starts_with("wasm-") => return Ok(Decoded::Ignored),
         _ => return Ok(Decoded::Unknown),
     };
     Ok(Decoded::Event(Box::new(rec)))
@@ -1101,6 +1131,21 @@ mod tests {
     #[test]
     fn known_uninteresting_types_are_ignored_not_unknown() {
         for kind in ["coin_spent", "message", "wasm", "schedule_start"] {
+            assert!(
+                matches!(decode(&make_event(kind, &[])), Ok(Decoded::Ignored)),
+                "{kind} should be ignored"
+            );
+        }
+    }
+
+    #[test]
+    fn contract_events_are_ignored_by_prefix() {
+        // These are namespaced per contract, so there is no finite list to enumerate.
+        for kind in [
+            "wasm-rujira-fin/order.create",
+            "wasm-rujira-ghost-vault/repay",
+            "wasm-rujira-merge/withdraw",
+        ] {
             assert!(
                 matches!(decode(&make_event(kind, &[])), Ok(Decoded::Ignored)),
                 "{kind} should be ignored"
