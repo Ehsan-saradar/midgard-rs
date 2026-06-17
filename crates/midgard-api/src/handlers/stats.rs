@@ -14,6 +14,18 @@ use crate::models::Stats;
 use crate::{usd, AppState};
 
 pub async fn stats(State(state): State<AppState>) -> ApiResult<Json<Stats>> {
+    // Keyed on the committed height: the answer is exactly right until the next block lands, so
+    // a repeat request in the same block is served without touching the database at all.
+    let height = state.cursor.last().height;
+    let cached = state
+        .stats_cache
+        .get_or_compute(height, || compute(&state))
+        .await?;
+
+    Ok(Json((*cached).clone()))
+}
+
+async fn compute(state: &AppState) -> ApiResult<Stats> {
     let now = state.cursor.now_second();
     let day_ago = (now - 86_400).to_nano().to_i64();
 
@@ -66,11 +78,11 @@ pub async fn stats(State(state): State<AppState>) -> ApiResult<Json<Stats>> {
     .fetch_one(state.db.pool())
     .await?;
 
-    let unique_swappers = distinct_swappers(&state, None).await?;
-    let daily = distinct_swappers(&state, Some(now - 86_400)).await?;
-    let monthly = distinct_swappers(&state, Some(now - 30 * 86_400)).await?;
+    let unique_swappers = distinct_swappers(state, None).await?;
+    let daily = distinct_swappers(state, Some(now - 86_400)).await?;
+    let monthly = distinct_swappers(state, Some(now - 30 * 86_400)).await?;
 
-    Ok(Json(Stats {
+    Ok(Stats {
         rune_price_usd: float_str(rune_usd),
         // Requires the historical BEP2/ERC20 migration events, which this port does not record.
         switched_rune: int_str(0),
@@ -90,7 +102,7 @@ pub async fn stats(State(state): State<AppState>) -> ApiResult<Json<Stats>> {
         withdraw_volume: int_str(withdraw_volume),
         withdraw_count: int_str(withdraw_count),
         impermanent_loss_protection_paid: int_str(ilp_paid),
-    }))
+    })
 }
 
 /// Distinct swap initiators, optionally since a point in time.

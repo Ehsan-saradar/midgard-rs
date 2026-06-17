@@ -406,7 +406,8 @@ pub struct BondMetrics {
     pub maximum_active_bond: String,
 }
 
-#[derive(Debug, Serialize, Default)]
+/// `Clone` because this one is cached and handed out repeatedly; see [`crate::cache`].
+#[derive(Debug, Serialize, Default, Clone)]
 pub struct Stats {
     #[serde(rename = "runePriceUSD")]
     pub rune_price_usd: String,

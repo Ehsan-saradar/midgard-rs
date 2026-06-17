@@ -85,6 +85,7 @@ async fn main() -> Result<()> {
         config: config.clone(),
         thornode,
         chain_height: chain_height.clone(),
+        stats_cache: Default::default(),
     };
 
     let cancel = CancellationToken::new();

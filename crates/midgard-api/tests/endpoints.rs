@@ -437,3 +437,53 @@ async fn unknown_routes_are_404() {
     let (status, _) = get(&app, "/v2/nonexistent").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn stats_is_cached_within_a_block_and_refreshed_across_one() {
+    let (app, db, _g) = app_or_skip!();
+
+    let (_, first) = get(&app, "/v2/stats").await;
+    assert_eq!(first["swapCount"], "2");
+
+    // Add a swap without advancing the height. The cache is keyed on committed height, so the
+    // answer must not change — this is the whole point of the cache.
+    sqlx::query(
+        "INSERT INTO swap_events
+             (tx, chain, from_addr, to_addr, from_asset, from_e8, to_asset, to_e8, memo, pool,
+              to_e8_min, swap_slip_bp, liq_fee_e8, liq_fee_in_rune_e8, _direction,
+              _streaming, streaming_count, streaming_quantity, event_id, block_timestamp)
+         VALUES ('TX2', 'THOR', 'thor1zzz', 'thor1def', 'THOR.RUNE', 1, 'BTC.BTC', 1, '',
+                 'BTC.BTC', 0, 1, 1, 1, 0, false, 1, 1, 20000000009, $1)",
+    )
+    .bind((T0 + 3_600) * 1_000_000_000)
+    .execute(db.pool())
+    .await
+    .unwrap();
+
+    let (_, again) = get(&app, "/v2/stats").await;
+    assert_eq!(again["swapCount"], "2", "should still be the cached answer");
+
+    // A new block invalidates it.
+    sqlx::query("INSERT INTO block_log (height, timestamp, hash) VALUES (4, $1, '\\x04')")
+        .bind((T0 + 10_800) * 1_000_000_000)
+        .execute(db.pool())
+        .await
+        .unwrap();
+
+    // Rebuild the app so its cursor picks up the new height, as the running daemon's would.
+    let cfg = test_config().unwrap();
+    let cursor = BlockCursor::new();
+    cursor.refresh(&db).await.unwrap();
+    let thornode = Arc::new(
+        ThorNode::new("http://127.0.0.1:1", std::time::Duration::from_millis(50)).unwrap(),
+    );
+    let fresh = router(AppState::new(
+        Db::connect(&cfg).await.unwrap(),
+        cursor,
+        Arc::new(Config::default()),
+        thornode,
+    ));
+
+    let (_, after) = get(&fresh, "/v2/stats").await;
+    assert_eq!(after["swapCount"], "3", "a new block should refresh it");
+}

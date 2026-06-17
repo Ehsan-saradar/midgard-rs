@@ -6,6 +6,7 @@
 //! block pipeline and the API are independent and a broken REST port should not take out
 //! `/v2/pools`.
 
+pub mod cache;
 pub mod error;
 pub mod handlers;
 pub mod models;
@@ -34,6 +35,9 @@ pub struct AppState {
     pub thornode: Arc<ThorNode>,
     /// Chain tip as last seen by the sync loop, for `/v2/health`.
     pub chain_height: Arc<std::sync::atomic::AtomicI64>,
+    /// `/v2/stats` scans every event table since genesis, and the answer can only change when a
+    /// block lands. Keyed on committed height, so there is no staleness window to tune.
+    pub stats_cache: cache::HeightCache<models::Stats>,
 }
 
 impl AppState {
@@ -44,6 +48,7 @@ impl AppState {
             config,
             thornode,
             chain_height: Arc::new(std::sync::atomic::AtomicI64::new(0)),
+            stats_cache: cache::HeightCache::new(),
         }
     }
 }
