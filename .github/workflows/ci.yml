@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Debug info is the bulk of the target directory and nothing here reads a backtrace.
+  CARGO_PROFILE_DEV_DEBUG: none
+
+jobs:
+  check:
+    name: fmt, clippy, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets -- -D warnings
+
+      # No MIDGARD_TEST_DB, so the integration tests skip themselves and this job stays fast.
+      - run: cargo test --workspace
+
+  integration:
+    name: integration tests
+    runs-on: ubuntu-latest
+    services:
+      timescale:
+        image: timescale/timescaledb:latest-pg15
+        env:
+          POSTGRES_USER: midgard
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: midgard
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U midgard"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # MIDGARD_TEST_TENDERMINT is deliberately unset: the tests that need a real THORNode skip
+      # themselves rather than making CI depend on a public node being up.
+      - run: cargo test --workspace
+        env:
+          MIDGARD_TEST_DB: postgres://midgard:password@localhost:5432/midgard
+
+  build:
+    name: release build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked --bin midgard
