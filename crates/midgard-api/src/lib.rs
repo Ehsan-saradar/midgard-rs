@@ -9,6 +9,7 @@
 pub mod cache;
 pub mod error;
 pub mod handlers;
+pub mod metrics;
 pub mod models;
 pub mod query;
 pub mod usd;
@@ -64,6 +65,7 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(handlers::root))
         .route("/v2/health", get(handlers::health::health))
+        .route("/v2/debug/metrics", get(metrics::metrics))
         .route("/v2/pools", get(handlers::pools::pools))
         .route("/v2/pool/{asset}", get(handlers::pools::pool))
         .route("/v2/knownpools", get(handlers::pools::known_pools))

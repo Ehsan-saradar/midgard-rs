@@ -487,3 +487,57 @@ async fn stats_is_cached_within_a_block_and_refreshed_across_one() {
     let (_, after) = get(&fresh, "/v2/stats").await;
     assert_eq!(after["swapCount"], "3", "a new block should refresh it");
 }
+
+#[tokio::test]
+async fn metrics_expose_the_sync_gap() {
+    let (app, _db, _g) = app_or_skip!();
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/v2/debug/metrics")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok()),
+        Some("text/plain; version=0.0.4; charset=utf-8")
+    );
+
+    let body = String::from_utf8(
+        response
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes()
+            .to_vec(),
+    )
+    .unwrap();
+
+    // The gauges operators alert on, each with its HELP and TYPE preamble.
+    for name in [
+        "midgard_chain_cursor_height",
+        "midgard_chain_height",
+        "midgard_blocks_behind",
+        "midgard_database_up",
+    ] {
+        assert!(
+            body.contains(&format!("# TYPE {name} gauge")),
+            "missing {name}:\n{body}"
+        );
+    }
+
+    assert!(body.contains("midgard_chain_cursor_height 3"), "{body}");
+    assert!(body.contains("midgard_database_up 1"), "{body}");
+    // chain_height is 0 here (no sync loop running), so the gap must clamp rather than go
+    // negative against a committed height of 3.
+    assert!(body.contains("midgard_blocks_behind 0"), "{body}");
+}
