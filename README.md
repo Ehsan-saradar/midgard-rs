@@ -30,6 +30,7 @@ served:
 | `GET /v2/actions` | paginated action feed |
 | `GET /v2/members`, `GET /v2/member/{addr}` | liquidity provider positions |
 | `GET /v2/network`, `GET /v2/stats` | network-wide counters |
+| `GET /v2/debug/metrics` | Prometheus gauges, including `midgard_blocks_behind` |
 
 Not yet covered, and served by upstream: savers, borrowers, RUNEPool, THORNames, votes, TCY,
 affiliate history, the websocket feed, and the `/v2/thorchain/*` proxy.
@@ -123,7 +124,22 @@ A few decisions differ from the Go implementation, deliberately:
 
 - **Aggregates are computed on read.** Upstream materialises TimescaleDB continuous aggregates.
   Queries here hit the event tables directly: simpler and always consistent, but slower on wide
-  ranges over a fully-synced database.
+  ranges over a fully-synced database. `/v2/stats`, which scans everything since genesis, is
+  cached against the committed block height — an answer computed at height N is exactly right
+  until N+1, so there is no staleness window to tune.
+
+## Verifying against a node
+
+With a THORNode reachable, the quickest check that the pipeline is correct is to compare pool
+depths against the node's own view:
+
+```sh
+curl -s localhost:8080/v2/pools | jq -r '.[] | "\(.asset) \(.runeDepth)"' | head
+curl -s localhost:1317/thorchain/pools | jq -r '.[] | "\(.asset) \(.balance_rune)"' | head
+```
+
+They should agree to within the few blocks of sync lag. `midgard_blocks_behind` from
+`/v2/debug/metrics` tells you how much lag that is.
 
 ## License
 
