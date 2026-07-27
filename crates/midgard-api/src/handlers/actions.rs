@@ -80,7 +80,7 @@ pub async fn actions(
 
     // Newest first, then trim to the page. Sorting after the merge is what makes the per-table
     // limits safe.
-    rows.sort_by(|a, b| b.0.cmp(&a.0));
+    rows.sort_by_key(|row| std::cmp::Reverse(row.0));
     rows.truncate(limit as usize);
 
     let next_page_token = rows.last().map(|(id, _)| *id).unwrap_or(0);
